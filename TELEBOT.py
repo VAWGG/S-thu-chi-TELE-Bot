@@ -126,3 +126,30 @@ def handle_message(message):
 # Khởi động bot
 print("Bot đang chạy...")
 bot.polling()
+
+
+
+
+
+import os
+import threading
+from time import sleep
+from telebot import TeleBot
+
+bot = TeleBot('7485600278:AAFxrN6ZrkclJar_A3UYs8kf3SjLR5TPFP0')
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Welcome to my bot!")
+
+def run_bot():
+    bot.polling()
+
+if __name__ == "__main__":
+    # Khởi chạy bot trong thread riêng
+    threading.Thread(target=run_bot).start()
+
+    # Nghe cổng giả để Railway không báo lỗi
+    port = int(os.environ.get("PORT", 5000))
+    while True:
+        sleep(1)
