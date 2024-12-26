@@ -1,13 +1,10 @@
-#7485600278:AAFxrN6ZrkclJar_A3UYs8kf3SjLR5TPFP0
-
-
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 from datetime import datetime
 import re
 
 # Thay bằng token của bạn
-BOT_TOKEN = "7485600278:AAFxrN6ZrkclJar_A3UYs8kf3SjLR5TPFP0"
+BOT_TOKEN = "7869132035:AAF-R1rDOgMea-SAkGt8-StPkGP4n6R8tZk"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Danh sách lưu trữ giao dịch (giả lập database)
@@ -26,6 +23,18 @@ def parse_amount(text):
     else:
         return None
 
+# Hàm hiển thị danh sách giao dịch
+def list_transactions():
+    if not transactions:
+        return "Danh sách giao dịch hiện tại trống."
+    message = "📋 Danh sách giao dịch:\n"
+    for idx, transaction in enumerate(transactions, start=1):
+        message += (
+            f"{idx}. {transaction['note']} - {transaction['amount']:,} VNĐ "
+            f"({transaction['type']}) - {transaction['time'].strftime('%d-%m-%Y %H:%M')}\n"
+        )
+    return message
+
 # Hàm xử lý tin nhắn "Menu"
 @bot.message_handler(commands=['start', 'menu'])
 def send_menu(message):
@@ -34,6 +43,7 @@ def send_menu(message):
     markup.add(KeyboardButton("Thêm giao dịch"))
     markup.add(KeyboardButton("Xem thống kê tháng"))
     markup.add(KeyboardButton("Xem giao dịch cụ thể"))
+    markup.add(KeyboardButton("Xóa giao dịch"))
     bot.reply_to(message, "📋 Menu chính:\nChọn một tùy chọn bên dưới:", reply_markup=markup)
 
 # Thống kê tổng income và expense theo tháng
@@ -82,6 +92,15 @@ def handle_message(message):
     elif user_message == "Xem giao dịch cụ thể":
         bot.reply_to(message, "Nhập ngày cần xem giao dịch (dd-mm-yyyy):")
 
+    # Nếu người dùng chọn "Xóa giao dịch"
+    elif user_message == "Xóa giao dịch":
+        if not transactions:
+            bot.reply_to(message, "Danh sách hiện tại trống. Không có gì để xóa.")
+        else:
+            bot.reply_to(message, list_transactions())
+            bot.reply_to(message, "Nhập số thứ tự giao dịch bạn muốn xóa:")
+            bot.register_next_step_handler(message, delete_transaction)
+
     # Nếu người dùng nhập ngày
     elif re.match(r"\d{2}-\d{2}-\d{4}", user_message):
         try:
@@ -123,33 +142,21 @@ def handle_message(message):
         else:
             bot.reply_to(message, "Cú pháp không hợp lệ. Vui lòng nhập dạng:\n<số tiền> <mô tả> hoặc <mô tả> <số tiền>.")
 
+# Hàm xử lý xóa giao dịch
+def delete_transaction(message):
+    try:
+        idx = int(message.text.strip()) - 1
+        if idx < 0 or idx >= len(transactions):
+            bot.reply_to(message, "Số thứ tự không hợp lệ. Vui lòng thử lại.")
+        else:
+            deleted = transactions.pop(idx)
+            bot.reply_to(
+                message,
+                f"Đã xóa: {deleted['note']} - {deleted['amount']:,} VNĐ ({deleted['type']}) ✅"
+            )
+    except ValueError:
+        bot.reply_to(message, "Vui lòng nhập số thứ tự hợp lệ.")
+
 # Khởi động bot
 print("Bot đang chạy...")
 bot.polling()
-
-
-
-
-
-import os
-import threading
-from time import sleep
-from telebot import TeleBot
-
-bot = TeleBot('7485600278:AAFxrN6ZrkclJar_A3UYs8kf3SjLR5TPFP0')
-
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Welcome to my bot!")
-
-def run_bot():
-    bot.polling()
-
-if __name__ == "__main__":
-    # Khởi chạy bot trong thread riêng
-    threading.Thread(target=run_bot).start()
-
-    # Nghe cổng giả để Railway không báo lỗi
-    port = int(os.environ.get("PORT", 5000))
-    while True:
-        sleep(1)
